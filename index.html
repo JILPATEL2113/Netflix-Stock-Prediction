@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Netflix Stock Predictor</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+        body { background-color: #141414; color: #ffffff; padding: 40px 20px; display: flex; flex-direction: column; align-items: center; }
+        h1 { color: #E50914; font-size: 2.5rem; margin-bottom: 10px; font-weight: bold; }
+        .subtitle { color: #aaa; margin-bottom: 40px; font-size: 1.1rem; }
+        
+        .container { display: flex; gap: 40px; max-width: 1100px; width: 100%; justify-content: center; align-items: flex-start; }
+        .card { background: #1f1f1f; border-radius: 12px; padding: 30px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); width: 100%; }
+        .left-panel { flex: 1.2; border-top: 4px solid #444; }
+        .right-panel { flex: 1; border-top: 4px solid #E50914; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 350px; }
+        
+        h2 { font-size: 1.4rem; margin-bottom: 25px; color: #fff; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .slider-group { margin-bottom: 20px; }
+        .slider-label { display: flex; justify-content: space-between; margin-bottom: 8px; color: #ccc; font-size: 0.95rem; }
+        .slider-label span { font-weight: bold; color: #fff; }
+        input[type=range] { width: 100%; -webkit-appearance: none; background: #444; height: 6px; border-radius: 5px; outline: none; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #E50914; cursor: pointer; }
+        
+        .input-box { width: 100%; background: #333; border: 1px solid #444; color: #fff; padding: 10px; border-radius: 6px; font-size: 1rem; outline: none; margin-top: 5px; }
+        
+        .result-title { font-size: 1rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+        .price { font-size: 3.5rem; font-weight: bold; color: #1DB954; margin-bottom: 20px; }
+        .alert-box { padding: 12px 20px; border-radius: 6px; font-weight: 600; width: 100%; text-align: center; font-size: 0.95rem; }
+        .up { background-color: rgba(29, 185, 84, 0.15); color: #1DB954; border: 1px solid #1DB954; }
+        .down { background-color: rgba(229, 9, 20, 0.15); color: #E50914; border: 1px solid #E50914; }
+    </style>
+</head>
+<body>
+
+    <h1>🎬 Netflix Stock Price Predictor</h1>
+    <p class="subtitle">Sliders badlein aur real-time mein output dekhein!</p>
+
+    <div class="container">
+        <div class="card left-panel">
+            <h2>📊 Today's Market Metrics</h2>
+            
+            <div class="slider-group">
+                <div class="slider-label">Open Price: <span id="open-val">$410.0</span></div>
+                <input type="range" id="open" min="200" max="700" value="410" step="0.5" oninput="updatePrediction()">
+            </div>
+            
+            <div class="slider-group">
+                <div class="slider-label">High Price: <span id="high-val">$415.5</span></div>
+                <input type="range" id="high" min="200" max="700" value="415.5" step="0.5" oninput="updatePrediction()">
+            </div>
+            
+            <div class="slider-group">
+                <div class="slider-label">Low Price: <span id="low-val">$405.0</span></div>
+                <input type="range" id="low" min="200" max="700" value="405" step="0.5" oninput="updatePrediction()">
+            </div>
+            
+            <div class="slider-group">
+                <div class="slider-label">Close Price: <span id="close-val">$412.0</span></div>
+                <input type="range" id="close" min="200" max="700" value="412" step="0.5" oninput="updatePrediction()">
+            </div>
+            
+            <div class="slider-group">
+                <div class="slider-label">Volume (Traded Shares):</div>
+                <input type="number" id="volume" value="8000000" class="input-box" oninput="updatePrediction()">
+            </div>
+        </div>
+
+        <div class="card right-panel">
+            <div class="result-title">🔮 AI Predicted Tomorrow Close</div>
+            <div class="price" id="predicted-price">$0.00</div>
+            <div id="alert" class="alert-box up">Live data connect ho raha hai...</div>
+        </div>
+    </div>
+
+    <script>
+        async function updatePrediction() {
+            const openVal = parseFloat(document.getElementById('open').value);
+            const highVal = parseFloat(document.getElementById('high').value);
+            const lowVal = parseFloat(document.getElementById('low').value);
+            const closeVal = parseFloat(document.getElementById('close').value);
+            const volumeVal = parseInt(document.getElementById('volume').value) || 0;
+
+            document.getElementById('open-val').innerText = `$${openVal}`;
+            document.getElementById('high-val').innerText = `$${highVal}`;
+            document.getElementById('low-val').innerText = `$${lowVal}`;
+            document.getElementById('close-val').innerText = `$${closeVal}`;
+
+            const payload = {
+                Open: openVal,
+                High: highVal,
+                Low: lowVal,
+                Close: closeVal,
+                Volume: volumeVal
+            };
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if(data.status === "success") {
+                        const predPrice = data.predicted_tomorrow_close;
+                        document.getElementById('predicted-price').innerText = `$${predPrice.toFixed(2)}`;
+
+                        const alertBox = document.getElementById('alert');
+                        if (predPrice > closeVal) {
+                            alertBox.innerText = `📈 Price $${(predPrice - closeVal).toFixed(2)} upar ja sakta hai!`;
+                            alertBox.className = "alert-box up";
+                        } else {
+                            alertBox.innerText = `📉 Price $${(closeVal - predPrice).toFixed(2)} neeche gir sakta hai!`;
+                            alertBox.className = "alert-box down";
+                        }
+                    }
+                }
+            } catch (error) {
+                document.getElementById('alert').innerText = "🔌 Server Error: Pehle backend terminal chalu karein!";
+                document.getElementById('alert').className = "alert-box down";
+            }
+        }
+
+        window.onload = updatePrediction;
+    </script>
+</body>
+</html>
